@@ -1,0 +1,39 @@
+name: Frontend Review
+
+on:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - run: npm install
+
+      - uses: reviewdog/action-setup@v1
+
+      - name: Run ESLint
+        run: |
+          npx eslint . --ext .ts,.html -f json -o eslint-result.json || true
+          if [ ! -f eslint-result.json ]; then
+            echo "[]" > eslint-result.json
+          fi
+
+      - name: Reviewdog
+        run: |
+          reviewdog -f=eslint \
+            -name="frontend-review" \
+            -reporter=github-pr-review \
+            -level=warning \
+            < eslint-result.json
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
